@@ -1,0 +1,2592 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KanjiFlow - 漢字の流れ</title>
+    <meta name="description" content="Belajar Kanji Jepang dengan Spaced Repetition System">
+    <meta name="theme-color" content="#2596be">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="KanjiFlow">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* Embed font fallback - fully offline compatible */
+        @font-face {
+            font-family: 'Poppins';
+            font-weight: 400;
+            src: local('Roboto'), local('sans-serif');
+        }
+        @font-face {
+            font-family: 'Poppins';
+            font-weight: 600 800;
+            src: local('Roboto Medium'), local('Roboto Bold'), local('sans-serif');
+        }
+        @font-face {
+            font-family: 'Noto Serif JP';
+            font-weight: 400 900;
+            src: local('Noto Serif CJK JP'), local('NotoSerifCJK-Regular'), local('serif');
+        }
+    </style>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #f3ecde;
+            --bg-secondary: #ffffff;
+            --text-primary: #052c3b;
+            --text-secondary: #64748b;
+            --accent: #2596be;
+        }
+
+        body.dark-mode {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent: #00d4ff;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-primary);
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Splash Screen */
+        .splash { 
+            position: fixed; 
+            inset: 0; 
+            background: linear-gradient(135deg, #e8dcc8 0%, #f3ecde 50%, #e8dcc8 100%);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 9999;
+            animation: splashOut 1s ease 2.5s forwards;
+        }
+        @keyframes splashOut { to { opacity: 0; visibility: hidden; } }
+        
+        .splash-logo { 
+            width: 200px;
+            height: 200px;
+            animation: bounce 1.5s ease infinite; 
+        }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-25px); } }
+        
+        .splash-title { 
+            font-size: 3em; 
+            font-weight: 800; 
+            color: #052c3b; 
+            margin-top: 1.5rem;
+            text-shadow: 2px 2px 8px rgba(5,44,59,0.15);
+            animation: fadeInUp 0.6s ease 0.3s both;
+        }
+        
+        .splash-subtitle { 
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1.5em; 
+            color: #052c3b; 
+            margin-top: 0.75rem;
+            animation: fadeInUp 0.6s ease 0.5s both;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0.85;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loader { display: flex; gap: 0.75rem; margin-top: 2.5rem; }
+        .dot { 
+            width: 1rem; 
+            height: 1rem; 
+            background: #2596be; 
+            border-radius: 50%;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes pulse {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Main App */
+        #app { opacity: 0; animation: fadeIn 0.8s ease 3s forwards; }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .screen { display: none; min-height: 100vh; }
+        .screen.active { display: block; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
+
+        /* Main Menu */
+        .main-menu {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.25rem;
+        }
+
+        .logo {
+            width: 140px;
+            height: 140px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .app-title {
+            font-size: 3em;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 1rem 0 0.5rem;
+            text-shadow: 2px 2px 6px rgba(5,44,59,0.15);
+        }
+
+        .app-subtitle {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        /* Daily Goal Widget */
+        .goal-widget {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 550px;
+            width: 100%;
+            margin-bottom: 2.5rem;
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .goal-bar {
+            height: 0.875rem;
+            background: #e5e7eb;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
+        .goal-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #3ba5c9);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 1rem;
+        }
+
+        /* Menu Grid */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            max-width: 550px;
+            width: 100%;
+        }
+
+        .menu-card {
+            background: var(--bg-secondary);
+            padding: 2.5rem 1.75rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(220, 38, 38, 0.15);
+            border-color: #fca5a5;
+        }
+
+        .menu-card.full { grid-column: 1 / -1; }
+
+        .menu-icon { font-size: 3em; margin-bottom: 1rem; }
+
+        .menu-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .menu-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--accent);
+            color: white;
+            padding: 0.35rem 0.875rem;
+            border-radius: 1.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(37, 150, 190, 0.3);
+        }
+
+        .badge.new {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            animation: wiggle 2.5s ease-in-out infinite;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-12deg) scale(1.05); }
+            75% { transform: rotate(12deg) scale(1.05); }
+        }
+
+        /* Back Button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            margin-bottom: 2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .back-btn:hover {
+            transform: translateX(-8px);
+            color: #dc2626;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--accent), #3ba5c9);
+        }
+
+        .stat-icon { font-size: 2.5em; margin-bottom: 0.75rem; }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Section */
+        .section {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        /* Charts */
+        .chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 180px;
+            gap: 0.75rem;
+            padding: 1rem 0;
+        }
+
+        .chart-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-bar {
+            width: 100%;
+            background: linear-gradient(180deg, var(--accent), #3ba5c9);
+            border-radius: 0.5rem 0.5rem 0 0;
+            min-height: 6px;
+            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .chart-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .chart-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Achievements */
+        .achievements {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .achievement {
+            background: var(--bg-primary);
+            padding: 1.75rem 1.25rem;
+            border-radius: 1rem;
+            text-align: center;
+            transition: all 0.4s;
+            border: 2px solid transparent;
+        }
+
+        .achievement.unlocked {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.25);
+        }
+
+        .achievement.locked { opacity: 0.5; filter: grayscale(1); }
+
+        .ach-icon {
+            font-size: 3em;
+            margin-bottom: 0.75rem;
+        }
+
+        .ach-name {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+            color: var(--text-primary);
+        }
+
+        .ach-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Mastery Grid */
+        .mastery-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.25rem;
+        }
+
+        .mastery-item {
+            text-align: center;
+            padding: 1.75rem 1rem;
+            background: var(--bg-primary);
+            border-radius: 1rem;
+        }
+
+        .mastery-icon { font-size: 2.25em; margin-bottom: 0.75rem; }
+        .mastery-count { font-size: 2em; font-weight: 800; color: var(--text-primary); }
+        .mastery-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; }
+
+        /* SRS Bar */
+        .srs-bar-container {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .srs-bar {
+            flex: 1;
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 0.5rem;
+            transition: all 0.4s;
+        }
+
+        .srs-bar.filled {
+            background: linear-gradient(90deg, var(--accent), #3ba5c9);
+        }
+
+        .srs-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Kanji Cards */
+        .kanji-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .kanji-card {
+            background: var(--bg-secondary);
+            padding: 1.75rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            transition: all 0.4s;
+            border: 2px solid transparent;
+        }
+
+        .kanji-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.12);
+            border-color: #fca5a5;
+        }
+
+        .kanji-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .kanji-char {
+            font-size: 3.5em;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .kanji-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 0.65rem 1.25rem;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .btn-edit { background: #3b82f6; }
+        .btn-edit:hover { background: #2563eb; transform: scale(1.05); }
+        .btn-delete { background: #d9534f; }
+        .btn-delete:hover { background: #b91c1c; transform: scale(1.05); }
+
+        .kanji-meaning {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .kanji-reading {
+            margin: 0.65rem 0;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .kanji-label {
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border: 2px solid transparent;
+            border-radius: 1rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+        }
+
+        .tab:hover { background: var(--bg-primary); }
+
+        .tab.active {
+            background: #dc2626;
+            color: white;
+            border-color: #b91c1c;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .level-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1.25rem;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Quiz */
+        .quiz-header {
+            background: var(--text-primary);
+            padding: 0.875rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .quiz-score {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .kanji-display-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1.5rem 1.5rem;
+            gap: 0.75rem;
+            background: var(--bg-secondary);
+            margin: 1rem 1rem 0.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .kanji-display {
+            font-size: 5em;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-shadow: 2px 2px 6px rgba(5,44,59,0.1);
+            line-height: 1;
+        }
+
+        .meaning-display {
+            font-size: 1.2em;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .quiz-badges {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .quiz-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .quiz-badge.onyomi { background: #8da5a4; color: #052c3b; }
+        .quiz-badge.kunyomi { background: #c7cec6; color: #052c3b; }
+
+        .options {
+            padding: 1rem;
+            padding-bottom: 90px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        .option {
+            padding: 0.85rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+            min-width: 110px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+        }
+
+        .option.onyomi { 
+            background: #8da5a4; 
+            color: #052c3b;
+        }
+        .option.kunyomi { 
+            background: #c7cec6; 
+            color: #052c3b;
+        }
+
+        .option:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .option.selected {
+            outline: 4px solid #f59e0b;
+            transform: scale(1.05);
+        }
+
+        .option.correct {
+            background: #10b981 !important;
+            outline: 4px solid #059669;
+        }
+
+        .option.wrong {
+            background: #dc2626 !important;
+            outline: 4px solid #b91c1c;
+        }
+
+        .option:disabled { cursor: not-allowed; opacity: 0.75; }
+
+        .check-btn {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 3rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(37, 150, 190, 0.35);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .check-btn:hover:not(:disabled) {
+            background: #1a7a9e;
+            transform: translateX(-50%) translateY(-4px);
+            box-shadow: 0 10px 30px rgba(37, 150, 190, 0.45);
+        }
+
+        .check-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+            font-size: 1.1rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1a7a9e;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(37, 150, 190, 0.3);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-3px);
+        }
+
+        .btn-add {
+            padding: 0.875rem 2.25rem;
+            background: #10b981;
+            border: none;
+            border-radius: 1rem;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-add:hover {
+            background: #059669;
+            transform: translateY(-3px);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            max-width: 550px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            font-size: 2rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+            transform: scale(1.1);
+        }
+
+        .form-group { margin-bottom: 1.75rem; }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        }
+
+        .form-help {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2.5rem;
+        }
+
+        .btn-save, .btn-cancel {
+            flex: 1;
+            padding: 1.15rem;
+            border: none;
+            border-radius: 0.875rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-save {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #475569;
+        }
+
+        .manage-header {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 1.25rem;
+            margin-bottom: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+
+        .manage-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .empty {
+            text-align: center;
+            padding: 5rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 5em;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 2.5rem 4rem;
+            border-radius: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 800;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.35);
+            display: none;
+            z-index: 2000;
+        }
+
+        .feedback.show {
+            display: block;
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .feedback.correct {
+            background: #10b981;
+            color: white;
+        }
+
+        .feedback.wrong {
+            background: #dc2626;
+            color: white;
+        }
+
+        .review-header {
+            background: var(--bg-secondary);
+            border-radius: 1.25rem;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+
+        .review-count {
+            font-size: 4em;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .review-label {
+            font-size: 1.5rem;
+            margin-top: 1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .review-actions {
+            display: flex;
+            gap: 1.25rem;
+            justify-content: center;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .menu-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-grid { grid-template-columns: 1fr; }
+            .mastery-grid { grid-template-columns: repeat(2, 1fr); }
+            .kanji-display { font-size: 4em; }
+            .kanji-list { grid-template-columns: 1fr; }
+            .achievements { grid-template-columns: repeat(2, 1fr); }
+            .app-title { font-size: 2.25em; }
+            .options { gap: 0.6rem; }
+            .option { 
+                padding: 0.75rem 1.25rem; 
+                font-size: 0.95rem; 
+                min-width: 100px; 
+            }
+            .check-btn { 
+                padding: 0.875rem 2.5rem; 
+                font-size: 1rem; 
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div class="splash">
+        <img class="splash-logo" src="data:image/png;base64,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" alt="KanjiFlow Logo">
+        <div class="splash-title">KanjiFlow</div>
+        <div class="splash-subtitle">漢字の流れ</div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app">
+        <!-- Main Menu -->
+        <div class="screen active" id="mainMenu">
+            <div class="main-menu">
+                <!-- Daily Goal Widget -->
+                <div class="goal-widget">
+                    <div class="goal-header">
+                        <span>🎯 Target Harian</span>
+                        <span id="goalText">0 / 10</span>
+                    </div>
+                    <div class="goal-bar">
+                        <div class="goal-fill" id="goalFill"></div>
+                    </div>
+                </div>
+
+                <div class="menu-grid">
+                    <div class="menu-card" onclick="nav('manage')">
+                        <div class="menu-icon">✏️</div>
+                        <div class="menu-title">Manage Kanji</div>
+                        <div class="menu-desc">Kelola Database</div>
+                    </div>
+
+                    <div class="menu-card" onclick="nav('mode')">
+                        <div class="menu-icon">🎮</div>
+                        <div class="menu-title">Study Mode</div>
+                        <div class="menu-desc">Latihan Kanji</div>
+                    </div>
+
+                    <div class="menu-card" onclick="nav('review')">
+                        <div class="menu-icon">🧠</div>
+                        <div class="menu-title">Review Today</div>
+                        <div class="menu-desc">Kanji Siap Review</div>
+                        <div class="badge" id="reviewBadge">0</div>
+                    </div>
+
+                    <div class="menu-card" onclick="nav('dashboard')">
+                        <div class="menu-icon">📊</div>
+                        <div class="menu-title">Dashboard</div>
+                        <div class="menu-desc">Stats & Achievements</div>
+                        <div class="badge new" id="newBadge" style="display:none">New!</div>
+                    </div>
+
+                    <div class="menu-card full" onclick="nav('settings')">
+                        <div class="menu-icon">⚙️</div>
+                        <div class="menu-title">Pengaturan</div>
+                        <div class="menu-desc">Goals, Import/Export, Reset</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div class="screen" id="dashboardScreen">
+            <div class="container">
+                <div class="back-btn" onclick="nav('main')">← Kembali</div>
+                
+                <h1 style="font-size:2.5em;font-weight:800;text-align:center;margin-bottom:2.5rem;color:var(--text-primary)">📊 Dashboard</h1>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📚</div>
+                        <div class="stat-value" id="totalKanji">0</div>
+                        <div class="stat-label">Total Kanji</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="mastered">0</div>
+                        <div class="stat-label">Mastered</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-value" id="accuracy">0%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-value" id="streak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+
+                <!-- 7-Day Progress Chart -->
+                <div class="section">
+                    <div class="section-title">📈 Progress (7 Hari Terakhir)</div>
+                    <div class="chart" id="chart7days"></div>
+                </div>
+
+                <!-- Achievements -->
+                <div class="section">
+                    <div class="section-title">🏆 Achievements</div>
+                    <div class="achievements" id="achievementsGrid"></div>
+                </div>
+
+                <!-- Mastery Distribution -->
+                <div class="section">
+                    <div class="section-title">Mastery Distribution</div>
+                    <div class="mastery-grid">
+                        <div class="mastery-item">
+                            <div class="mastery-icon">⬜</div>
+                            <div class="mastery-count" id="lvl0">0</div>
+                            <div class="mastery-label">Level 0<br><small>Besok</small></div>
+                        </div>
+                        <div class="mastery-item">
+                            <div class="mastery-icon">🟩</div>
+                            <div class="mastery-count" id="lvl1">0</div>
+                            <div class="mastery-label">Level 1<br><small>3 Hari</small></div>
+                        </div>
+                        <div class="mastery-item">
+                            <div class="mastery-icon">🟩🟩</div>
+                            <div class="mastery-count" id="lvl2">0</div>
+                            <div class="mastery-label">Level 2<br><small>1 Minggu</small></div>
+                        </div>
+                        <div class="mastery-item">
+                            <div class="mastery-icon">🟩🟩🟩</div>
+                            <div class="mastery-count" id="lvl3">0</div>
+                            <div class="mastery-label">Level 3<br><small>2 Minggu</small></div>
+                        </div>
+                        <div class="mastery-item">
+                            <div class="mastery-icon">✅</div>
+                            <div class="mastery-count" id="lvl4">0</div>
+                            <div class="mastery-label">Mastered<br><small>3 Minggu+</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Today -->
+        <div class="screen" id="reviewScreen">
+            <div class="container">
+                <div class="back-btn" onclick="nav('main')">← Kembali</div>
+                
+                <div class="review-header">
+                    <div class="review-count" id="reviewCount">0</div>
+                    <div class="review-label">Kanji Siap Direview</div>
+                    <div class="review-actions">
+                        <button class="btn btn-success" onclick="startReview()" id="startReviewBtn">Mulai Review</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="screen" id="modeSelector">
+            <div class="container" style="max-width:600px">
+                <div class="back-btn" onclick="nav('main')">← Kembali</div>
+                
+                <h1 style="font-size:2.5em;font-weight:800;text-align:center;margin-bottom:2.5rem;color:var(--text-primary)">Pilih Mode</h1>
+
+                <div style="display:flex;flex-direction:column;gap:1.5rem">
+                    <div class="menu-card" onclick="selectMode('normal')">
+                        <div class="menu-icon">📝</div>
+                        <div class="menu-title">Mode Normal</div>
+                        <div class="menu-desc">Kanji → Pilih Onyomi & Kunyomi</div>
+                    </div>
+                    
+                    <div class="menu-card" onclick="selectMode('reverse')">
+                        <div class="menu-icon">🔄</div>
+                        <div class="menu-title">Mode Terbalik</div>
+                        <div class="menu-desc">Kanji + Bacaan → Pilih Arti</div>
+                    </div>
+
+                    <div class="menu-card" onclick="selectMode('practice')">
+                        <div class="menu-icon">💪</div>
+                        <div class="menu-title">Practice Mode</div>
+                        <div class="menu-desc">Latihan tanpa pengaruh SRS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selector -->
+        <div class="screen" id="levelSelector">
+            <div class="container" style="max-width:750px">
+                <div class="back-btn" onclick="nav('mode')">← Kembali</div>
+                
+                <h1 style="font-size:2.5em;font-weight:800;text-align:center;margin-bottom:2.5rem;color:var(--text-primary)">Pilih Level</h1>
+
+                <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('N5')">
+                        <div class="stat-icon">5️⃣</div>
+                        <div class="stat-value" style="font-size:2em">N5</div>
+                        <div class="stat-label"><span id="rdyN5" style="color:#10b981;font-weight:700">0</span> siap · <span id="cN5">0</span> total</div>
+                    </div>
+                    
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('N4')">
+                        <div class="stat-icon">4️⃣</div>
+                        <div class="stat-value" style="font-size:2em">N4</div>
+                        <div class="stat-label"><span id="rdyN4" style="color:#10b981;font-weight:700">0</span> siap · <span id="cN4">0</span> total</div>
+                    </div>
+                    
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('N3')">
+                        <div class="stat-icon">3️⃣</div>
+                        <div class="stat-value" style="font-size:2em">N3</div>
+                        <div class="stat-label"><span id="rdyN3" style="color:#10b981;font-weight:700">0</span> siap · <span id="cN3">0</span> total</div>
+                    </div>
+                    
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('N2')">
+                        <div class="stat-icon">2️⃣</div>
+                        <div class="stat-value" style="font-size:2em">N2</div>
+                        <div class="stat-label"><span id="rdyN2" style="color:#10b981;font-weight:700">0</span> siap · <span id="cN2">0</span> total</div>
+                    </div>
+                    
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('N1')">
+                        <div class="stat-icon">1️⃣</div>
+                        <div class="stat-value" style="font-size:2em">N1</div>
+                        <div class="stat-label"><span id="rdyN1" style="color:#10b981;font-weight:700">0</span> siap · <span id="cN1">0</span> total</div>
+                    </div>
+                    
+                    <div class="stat-card" style="cursor:pointer" onclick="startQuiz('custom')">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value" style="font-size:2em">Custom</div>
+                        <div class="stat-label"><span id="rdyCustom" style="color:#10b981;font-weight:700">0</span> siap · <span id="cCustom">0</span> total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div class="screen" id="quizScreen">
+            <div class="quiz-header">
+                <div class="back-btn" style="margin:0;color:white" onclick="nav('main')">←</div>
+                <div class="quiz-score">
+                    <div class="score-item">
+                        <span style="color:#10b981">✓</span>
+                        <span id="correct">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span style="color:#ef4444">✗</span>
+                        <span id="wrong">0</span>
+                    </div>
+                </div>
+                <div style="font-size:1.1rem;font-weight:700;color:white" id="qNum">1 / 10</div>
+            </div>
+
+            <div class="kanji-display-area">
+                <div class="kanji-display" id="kanjiChar">金</div>
+                <div class="meaning-display" id="meaningText">emas, uang</div>
+                <div class="quiz-badges">
+                    <div class="quiz-badge onyomi" id="onyomiBadge">音読み: 2</div>
+                    <div class="quiz-badge kunyomi" id="kunyomiBadge">訓読み: 2</div>
+                </div>
+            </div>
+
+            <div class="options" id="optionsArea"></div>
+
+            <button class="check-btn" id="checkBtn" onclick="check()">CEK - 0/4</button>
+        </div>
+
+        <!-- Manage Kanji -->
+        <div class="screen" id="manageScreen">
+            <div class="container">
+                <div class="back-btn" onclick="nav('main')">← Kembali</div>
+                
+                <div class="manage-header">
+                    <div class="manage-title">Manage Kanji</div>
+                    <button class="btn-add" onclick="showModal()">+ Tambah Kanji</button>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('N5', this)">N5 <span class="level-badge" id="tN5">0</span></div>
+                    <div class="tab" onclick="switchTab('N4', this)">N4 <span class="level-badge" id="tN4">0</span></div>
+                    <div class="tab" onclick="switchTab('N3', this)">N3 <span class="level-badge" id="tN3">0</span></div>
+                    <div class="tab" onclick="switchTab('N2', this)">N2 <span class="level-badge" id="tN2">0</span></div>
+                    <div class="tab" onclick="switchTab('N1', this)">N1 <span class="level-badge" id="tN1">0</span></div>
+                    <div class="tab" onclick="switchTab('custom', this)">Custom <span class="level-badge" id="tCustom">0</span></div>
+                </div>
+
+                <div class="tab-content active" id="tabN5"><div class="kanji-list" id="listN5"></div></div>
+                <div class="tab-content" id="tabN4"><div class="kanji-list" id="listN4"></div></div>
+                <div class="tab-content" id="tabN3"><div class="kanji-list" id="listN3"></div></div>
+                <div class="tab-content" id="tabN2"><div class="kanji-list" id="listN2"></div></div>
+                <div class="tab-content" id="tabN1"><div class="kanji-list" id="listN1"></div></div>
+                <div class="tab-content" id="tabCustom"><div class="kanji-list" id="listCustom"></div></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="screen" id="settingsScreen">
+            <div class="container" style="max-width:750px">
+                <div class="back-btn" onclick="nav('main')">← Kembali</div>
+                
+                <h1 style="font-size:2.5em;font-weight:800;text-align:center;margin-bottom:2.5rem;color:var(--text-primary)">⚙️ Pengaturan</h1>
+
+                <!-- Theme -->
+                <div class="section">
+                    <div class="section-title">🌙 Tema</div>
+                    <div style="margin-top:1.5rem">
+                        <div style="font-weight:700;margin-bottom:1rem">Mode Gelap</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Aktifkan mode gelap untuk kenyamanan mata
+                        </div>
+                        <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+                            <input type="checkbox" id="darkModeToggle" onchange="saveDarkMode()" style="width:24px;height:24px;cursor:pointer">
+                            <span>Gunakan Dark Mode</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Daily Goal -->
+                <div class="section">
+                    <div class="section-title">🎯 Daily Goal</div>
+                    <div style="margin-top:1.5rem">
+                        <div style="font-weight:700;margin-bottom:1rem">Target Kanji Per Hari</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Atur berapa kanji yang ingin kamu pelajari setiap hari
+                        </div>
+                        <input type="number" class="form-input" id="goalInput" min="1" max="100" value="10" style="margin-bottom:1rem">
+                        <button class="btn btn-primary" onclick="saveGoal()" style="width:100%">💾 Simpan Target</button>
+                    </div>
+                </div>
+
+                <!-- Sound Settings -->
+                <div class="section">
+                    <div class="section-title">🔊 Suara</div>
+                    <div style="margin-top:1.5rem">
+                        <div style="font-weight:700;margin-bottom:1rem">Efek Suara</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Aktifkan/Nonaktifkan efek suara saat menjawab
+                        </div>
+                        <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+                            <input type="checkbox" id="soundToggle" checked onchange="saveSoundSetting()" style="width:24px;height:24px;cursor:pointer">
+                            <span>Putar Efek Suara</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Data Management -->
+                <div class="section">
+                    <div class="section-title">💾 Data Management</div>
+                    
+                    <div style="margin-bottom:2rem">
+                        <div style="font-weight:700;margin-bottom:1rem">Export Data</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Download semua data (kanji, SRS, statistik) sebagai file JSON
+                        </div>
+                        <button class="btn btn-primary" onclick="exportData()" style="width:100%">📥 Download Data</button>
+                    </div>
+
+                    <div style="margin-bottom:2rem">
+                        <div style="font-weight:710;margin-bottom:1rem">Import Data</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Import data dari file JSON atau paste langsung dari clipboard
+                        </div>
+                        <input type="file" id="importFile" accept=".json,.txt" style="display:none" onchange="importData(event)">
+                        <button class="btn btn-primary" onclick="document.getElementById('importFile').click()" style="width:100%;margin-bottom:0.75rem">📂 Pilih File JSON</button>
+                        <button class="btn btn-primary" onclick="showImportPasteModal()" style="width:100%;background:#10b981">📋 Import via Paste Teks</button>
+                    </div>
+
+                    <div>
+                        <div style="font-weight:700;margin-bottom:1rem">Reset Statistik</div>
+                        <div style="font-size:0.95rem;color:var(--text-secondary);margin-bottom:1.25rem">
+                            Reset SRS progress & statistik (data kanji tetap aman)
+                        </div>
+                        <button class="btn" onclick="resetStats()" style="width:100%;background:#dc2626;color:white">🔄 Reset Statistik</button>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="section">
+                    <div class="section-title">ℹ️ Informasi</div>
+                    <div style="font-size:1rem;line-height:1.8">
+                        <div style="margin-bottom:0.75rem">
+                            <strong>Versi:</strong> KanjiFlow 3.1 Ultimate
+                        </div>
+                        <div style="margin-bottom:0.75rem">
+                            <strong>Total Kanji:</strong> <span id="infoKanji">0</span>
+                        </div>
+                        <div style="margin-bottom:0.75rem">
+                            <strong>Total Quiz:</strong> <span id="infoQuiz">0</span>
+                        </div>
+                        <div style="margin-bottom:0.75rem">
+                            <strong>Achievements:</strong> <span id="infoAch">0</span> / 8
+                        </div>
+                        <div style="color:var(--text-secondary);margin-top:1.5rem;font-size:0.9rem">
+                            KanjiFlow - 漢字の流れ<br>Master Kanji dengan Spaced Repetition System
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Tambah Kanji</div>
+                <div class="modal-close" onclick="closeModal()">×</div>
+            </div>
+            <form id="kanjiForm">
+                <div class="form-group">
+                    <label class="form-label">Kanji</label>
+                    <input type="text" class="form-input" id="inputKanji" placeholder="金" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Arti (Indonesia)</label>
+                    <input type="text" class="form-input" id="inputMeaning" placeholder="emas, uang, logam" required>
+                    <div class="form-help">Pisahkan dengan koma jika lebih dari satu</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Onyomi (音読み)</label>
+                    <input type="text" class="form-input" id="inputOnyomi" placeholder="キン, コン" required>
+                    <div class="form-help">Pisahkan dengan koma jika lebih dari satu</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kunyomi (訓読み)</label>
+                    <input type="text" class="form-input" id="inputKunyomi" placeholder="かね, かな" required>
+                    <div class="form-help">Pisahkan dengan koma jika lebih dari satu</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Level</label>
+                    <select class="form-input" id="inputLevel" required>
+                        <option value="N5">JLPT N5</option>
+                        <option value="N4">JLPT N4</option>
+                        <option value="N3">JLPT N3</option>
+                        <option value="N2">JLPT N2</option>
+                        <option value="N1">JLPT N1</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-save">💾 Simpan</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">✕ Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <script>
+        // ===== THEME SYSTEM =====
+        const initTheme = () => {
+            const saved = localStorage.getItem('KF_darkMode');
+            const isDark = saved !== null ? JSON.parse(saved) : false;
+            if(isDark) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('darkModeToggle').checked = true;
+            }
+        };
+
+        const saveDarkMode = () => {
+            const isDark = document.getElementById('darkModeToggle').checked;
+            document.body.classList.toggle('dark-mode', isDark);
+            localStorage.setItem('KF_darkMode', JSON.stringify(isDark));
+        };
+
+        // ===== SOUND SYSTEM =====
+        let soundEnabled = JSON.parse(localStorage.getItem('KF_soundEnabled') ?? 'true');
+
+        const saveSoundSetting = () => {
+            soundEnabled = document.getElementById('soundToggle').checked;
+            localStorage.setItem('KF_soundEnabled', JSON.stringify(soundEnabled));
+        };
+
+        const playSound = (type) => {
+            if(!soundEnabled) return;
+            
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                if(type === 'correct') {
+                    const now = audioContext.currentTime;
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if(type === 'wrong') {
+                    const now = audioContext.currentTime;
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    
+                    osc.frequency.setValueAtTime(329.63, now);
+                    osc.frequency.setValueAtTime(246.94, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch(e) {
+                console.log('Audio context error:', e);
+            }
+        };
+
+        // ===== CORE DATA =====
+        const DB = {
+            N5: [
+                { k: '日', on: ['ニチ', 'ジツ'], kun: ['ひ', 'か'], m: ['hari', 'matahari'] },
+                { k: '月', on: ['ゲツ', 'ガツ'], kun: ['つき'], m: ['bulan'] },
+                { k: '火', on: ['カ'], kun: ['ひ', 'ほ'], m: ['api'] },
+                { k: '水', on: ['スイ'], kun: ['みず'], m: ['air'] },
+                { k: '木', on: ['モク', 'ボク'], kun: ['き', 'こ'], m: ['pohon', 'kayu'] },
+                { k: '金', on: ['キン', 'コン'], kun: ['かね', 'かな'], m: ['emas', 'uang'] },
+                { k: '土', on: ['ド', 'ト'], kun: ['つち'], m: ['tanah'] }
+            ],
+            N4: [], N3: [], N2: [], N1: [], custom: []
+        };
+
+        let db = JSON.parse(localStorage.getItem('KF_db')) || DB;
+        let srs = JSON.parse(localStorage.getItem('KF_srs')) || {};
+        let stats = JSON.parse(localStorage.getItem('KF_stats')) || {
+            total: 0, correct: 0, wrong: 0, streak: 0, lastDate: null,
+            goal: 10, daily: 0, dailyDate: null, last7: [],
+            ach: { first: 0, s7: 0, s30: 0, m10: 0, m50: 0, perfect: 0, d30: 0, n5: 0 },
+            newAch: [], lastStreak: null
+        };
+
+        let mode = 'normal', practice = 0, lvl = '', quiz = [], idx = 0, cor = 0, wrn = 0, sel = [], cur = null, editIdx = -1, editLvl = '', curTab = 'N5';
+
+        const norm = m => Array.isArray(m) ? m : m.split(',').map(x => x.trim());
+        const disp = m => norm(m).join(', ');
+        const shuf = a => { let x = [...a]; for(let i = x.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+        const kId = (k, l) => `${l}-${k.k}`;
+        const save = () => { localStorage.setItem('KF_db', JSON.stringify(db)); localStorage.setItem('KF_srs', JSON.stringify(srs)); localStorage.setItem('KF_stats', JSON.stringify(stats)); };
+
+        // ===== STREAK SYSTEM (FIXED) =====
+        const checkDailyStreak = () => {
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+            const lastStreak = stats.lastStreak ? new Date(stats.lastStreak).toDateString() : null;
+
+            if (lastStreak === today) {
+                // Sudah belajar hari ini
+                return;
+            } else if (lastStreak === yesterday) {
+                // Lanjut streak
+                stats.streak++;
+            } else if (lastStreak) {
+                // Streak putus, reset ke 1
+                stats.streak = 1;
+            } else {
+                // Pertama kali
+                stats.streak = 1;
+            }
+
+            stats.lastStreak = new Date().toISOString();
+            stats.lastDate = new Date().toISOString();
+            save();
+        };
+
+        // ===== SRS SYSTEM =====
+        const initSRS = id => { 
+            if(!srs[id]) srs[id] = { lvl: 0, next: new Date().toISOString(), cor: 0, wrn: 0 }; 
+        };
+        
+        const getInt = l => [1,3,7,14,21,30][l] || 1;
+        
+        const updSRS = (id, ok) => {
+            if(practice) return;
+            initSRS(id);
+            const d = srs[id];
+            if(ok) { 
+                d.cor++; 
+                if(d.lvl < 5) d.lvl++; 
+            } else { 
+                d.wrn++; 
+                d.lvl = Math.max(0, d.lvl - 1);
+            }
+            
+            const days = getInt(d.lvl);
+            const nextDate = new Date();
+            nextDate.setDate(nextDate.getDate() + days);
+            d.next = nextDate.toISOString();
+            save();
+        };
+
+        const getReview = () => {
+            const now = new Date();
+            const q = [];
+            
+            Object.keys(srs).forEach(id => {
+                const d = srs[id];
+                const next = new Date(d.next);
+                
+                if(next <= now) {
+                    const [l, k] = id.split('-');
+                    const ko = db[l]?.find(x => x.k === k);
+                    if(ko) q.push({ ...ko, lvl: l, srsData: d, id: id });
+                }
+            });
+            
+            return q;
+        };
+
+        const renderBar = (l, nextDate) => {
+            let h = '<div class="srs-bar-container">';
+            for(let i = 0; i < 5; i++) h += `<div class="srs-bar${i < l ? ' filled' : ''}"></div>`;
+            h += '</div>';
+            const lbl = ['Baru', '3 Hari', '1 Minggu', '2 Minggu', '3 Minggu', '1 Bulan'];
+            let info = lbl[l];
+            if(nextDate && l > 0) {
+                const now = new Date();
+                const next = new Date(nextDate);
+                const diffMs = next - now;
+                if(diffMs <= 0) {
+                    info = '🔔 Siap Review!';
+                } else {
+                    const diffDays = Math.ceil(diffMs / 86400000);
+                    info = diffDays === 1 ? 'Review besok' : `Review ${diffDays} hari lagi`;
+                }
+            } else if(l === 0) {
+                info = nextDate ? '🔔 Siap Dikuis!' : '✨ Baru';
+            }
+            h += `<div class="srs-info">${info}</div>`;
+            return h;
+        };
+
+        // ===== DAILY GOAL (FIXED) =====
+        const updGoal = () => {
+            const today = new Date().toDateString();
+            if(stats.dailyDate !== today) { 
+                stats.daily = 0; 
+                stats.dailyDate = today; 
+            }
+            
+            const p = Math.min((stats.daily / stats.goal) * 100, 100);
+            const fillEl = document.getElementById('goalFill');
+            const textEl = document.getElementById('goalText');
+            
+            if(fillEl) fillEl.style.width = p + '%';
+            if(textEl) textEl.textContent = `${stats.daily} / ${stats.goal}`;
+            
+            if(stats.daily >= stats.goal) {
+                checkAch();
+            }
+        };
+
+        const saveGoal = () => {
+            const v = parseInt(document.getElementById('goalInput').value);
+            if(v >= 1 && v <= 100) {
+                stats.goal = v;
+                save();
+                updGoal();
+                alert('✅ Target harian berhasil diupdate!');
+            }
+        };
+
+        // ===== ACHIEVEMENTS (FIXED) =====
+        const achList = [
+            { id: 'first', icon: '🎯', name: 'First Step', desc: 'Selesaikan quiz pertama', check: () => stats.total >= 1 },
+            { id: 's7', icon: '🔥', name: '7 Day Streak', desc: 'Belajar 7 hari berturut-turut', check: () => stats.streak >= 7 },
+            { id: 's30', icon: '💪', name: 'Dedication', desc: 'Belajar 30 hari berturut-turut', check: () => stats.streak >= 30 },
+            { id: 'm10', icon: '⭐', name: 'Novice', desc: 'Master 10 kanji', check: () => Object.values(srs).filter(d => d.lvl >= 4).length >= 10 },
+            { id: 'm50', icon: '🏆', name: 'Expert', desc: 'Master 50 kanji', check: () => Object.values(srs).filter(d => d.lvl >= 4).length >= 50 },
+            { id: 'perfect', icon: '💯', name: 'Perfect!', desc: 'Quiz dengan 100% benar', check: () => stats.ach.perfect || 0 },
+            { id: 'd30', icon: '📅', name: 'Consistent', desc: 'Capai target 30 hari berturut', check: () => stats.ach.d30 || 0 },
+            { id: 'n5', icon: '🎓', name: 'N5 Master', desc: 'Master semua kanji N5', check: () => {
+                const n5 = (db.N5 || []).length;
+                const m = Object.keys(srs).filter(id => id.startsWith('N5-') && srs[id].lvl >= 4).length;
+                return n5 > 0 && n5 > 0 && m >= n5;
+            }}
+        ];
+
+        const checkAch = () => {
+            let newU = [];
+            achList.forEach(a => {
+                if(!stats.ach[a.id] && a.check()) {
+                    stats.ach[a.id] = 1;
+                    newU.push(a.name);
+                }
+            });
+            
+            if(newU.length) {
+                stats.newAch = newU;
+                const badge = document.getElementById('newBadge');
+                if(badge) badge.style.display = 'inline-block';
+                save();
+            }
+        };
+
+        const renderAch = () => {
+            const c = document.getElementById('achievementsGrid');
+            if(!c) return;
+            c.innerHTML = '';
+            achList.forEach(a => {
+                const u = stats.ach[a.id];
+                c.innerHTML += `<div class="achievement ${u ? 'unlocked' : 'locked'}">
+                    <div class="ach-icon">${a.icon}</div>
+                    <div class="ach-name">${a.name}</div>
+                    <div class="ach-desc">${a.desc}</div>
+                </div>`;
+            });
+        };
+
+        // ===== DASHBOARD =====
+        const upd7Day = () => {
+            const c = document.getElementById('chart7days');
+            if(!c) return;
+            c.innerHTML = '';
+            const days = [];
+            
+            for(let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const ds = d.toDateString();
+                const dd = stats.last7?.find(x => x.date === ds);
+                const ct = dd ? dd.count : 0;
+                days.push({ label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], count: ct });
+            }
+            
+            const max = Math.max(...days.map(d => d.count), 5);
+            days.forEach(day => {
+                const h = (day.count / max) * 100;
+                c.innerHTML += `<div class="chart-col">
+                    <div class="chart-value">${day.count}</div>
+                    <div class="chart-bar" style="height:${Math.max(h, 5)}%"></div>
+                    <div class="chart-label">${day.label}</div>
+                </div>`;
+            });
+        };
+
+        const updLast7 = () => {
+            const today = new Date().toDateString();
+            if(!stats.last7) stats.last7 = [];
+            const td = stats.last7.find(d => d.date === today);
+            
+            if(td) {
+                td.count++;
+            } else {
+                stats.last7.push({ date: today, count: 1 });
+            }
+            
+            stats.last7 = stats.last7.slice(-30);
+            save();
+        };
+
+        const updDash = () => {
+            let tot = 0;
+            Object.values(db).forEach(a => { tot += a.length; });
+            const te = document.getElementById('totalKanji');
+            if(te) te.textContent = tot;
+
+            let l0=0, l1=0, l2=0, l3=0, l4=0;
+            Object.keys(srs).forEach(id => {
+                const l = srs[id].lvl;
+                if(l === 0) l0++; else if(l === 1) l1++; else if(l === 2) l2++; else if(l === 3) l3++; else l4++;
+            });
+            l0 += Math.max(0, tot - Object.keys(srs).length);
+
+            ['lvl0','lvl1','lvl2','lvl3','lvl4'].forEach((id, i) => {
+                const e = document.getElementById(id);
+                if(e) e.textContent = [l0,l1,l2,l3,l4][i];
+            });
+
+            const me = document.getElementById('mastered');
+            if(me) me.textContent = l4;
+
+            const acc = (stats.correct + stats.wrong) > 0 ? Math.round((stats.correct / (stats.correct + stats.wrong)) * 100) : 0;
+            const ae = document.getElementById('accuracy');
+            if(ae) ae.textContent = acc + '%';
+
+            const se = document.getElementById('streak');
+            if(se) se.textContent = stats.streak;
+
+            const rv = getReview().length;
+            const rb = document.getElementById('reviewBadge');
+            if(rb) rb.textContent = rv;
+
+            updGoal();
+        };
+
+        const updSetInfo = () => {
+            let tot = 0;
+            Object.values(db).forEach(a => { tot += a.length; });
+            document.getElementById('infoKanji').textContent = tot;
+            document.getElementById('infoQuiz').textContent = stats.total;
+
+            const u = Object.values(stats.ach).filter(v => v).length;
+            document.getElementById('infoAch').textContent = u;
+        };
+
+        // ===== NAVIGATION =====
+        const nav = s => {
+            document.querySelectorAll('.screen').forEach(x => x.classList.remove('active'));
+            const screens = { main: 'mainMenu', dashboard: 'dashboardScreen', review: 'reviewScreen', mode: 'modeSelector', level: 'levelSelector', quiz: 'quizScreen', manage: 'manageScreen', settings: 'settingsScreen' };
+            const el = document.getElementById(screens[s]);
+            if(el) el.classList.add('active');
+            
+            if(s === 'main') {
+                checkDailyStreak();
+                updDash();
+            }
+            if(s === 'manage') {
+                renderList();
+            }
+            if(s === 'level') {
+                updCnt();
+            }
+            if(s === 'dashboard') { 
+                updDash(); 
+                renderAch(); 
+                upd7Day(); 
+                stats.newAch = []; 
+                const nb = document.getElementById('newBadge');
+                if(nb) nb.style.display = 'none'; 
+            }
+            if(s === 'review') { 
+                const rq = getReview(); 
+                document.getElementById('reviewCount').textContent = rq.length; 
+                document.getElementById('startReviewBtn').disabled = !rq.length; 
+            }
+            if(s === 'settings') { 
+                updSetInfo(); 
+                document.getElementById('goalInput').value = stats.goal; 
+                document.getElementById('soundToggle').checked = soundEnabled; 
+            }
+        };
+
+        const selectMode = m => {
+            if(m === 'practice') { practice = 1; mode = 'normal'; } else { practice = 0; mode = m; }
+            nav('level');
+            updCnt();
+        };
+
+        const startReview = () => {
+            const rq = getReview();
+            if(!rq.length) return;
+            practice = 0;
+            mode = 'normal';
+            lvl = 'review'; // marker khusus untuk review mode
+            quiz = shuf(rq);
+            idx = cor = wrn = 0;
+            nav('quiz');
+            showQ();
+        };
+
+        // ===== EXPORT/IMPORT =====
+        const exportData = () => {
+            const data = { db, srs, stats, date: new Date().toISOString(), ver: 'KanjiFlow 3.1' };
+            const json = JSON.stringify(data, null, 2);
+            const fileName = `KanjiFlow_data_${new Date().toISOString().split('T')[0]}.json`;
+
+            // Metode 1: Web Share API — paling kompatibel di Android WebView & mobile browser
+            if(navigator.share && navigator.canShare) {
+                try {
+                    const file = new File([json], fileName, { type: 'application/json' });
+                    if(navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            title: 'KanjiFlow Data',
+                            text: 'Export data KanjiFlow',
+                            files: [file]
+                        }).then(() => {
+                            // berhasil share
+                        }).catch(err => {
+                            if(err.name !== 'AbortError') tryBlobDownload(json, fileName);
+                        });
+                        return;
+                    }
+                } catch(e) { /* lanjut ke metode berikutnya */ }
+            }
+
+            // Metode 2: Web Share API tanpa file (share sebagai teks)
+            if(navigator.share) {
+                try {
+                    navigator.share({
+                        title: 'KanjiFlow Data Export',
+                        text: json
+                    }).catch(err => {
+                        if(err.name !== 'AbortError') tryBlobDownload(json, fileName);
+                    });
+                    return;
+                } catch(e) { /* lanjut */ }
+            }
+
+            // Metode 3: Blob download (desktop browser)
+            tryBlobDownload(json, fileName);
+        };
+
+        const tryBlobDownload = (json, fileName) => {
+            // Cek apakah ini environment yang support download (desktop/Chrome Android)
+            const isDesktop = !(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+            try {
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 500);
+                if(isDesktop) {
+                    // Di desktop, download langsung berhasil - cukup info singkat
+                    alert('✅ File sedang didownload!\nCek folder Downloads kamu.');
+                } else {
+                    // Di mobile WebView blob download sering gagal, tampilkan modal backup
+                    setTimeout(() => showExportModal(json), 600);
+                }
+            } catch(e) {
+                showExportModal(json);
+            }
+        };
+
+        const showExportModal = (json) => {
+            // Hapus modal sebelumnya jika ada
+            const prev = document.getElementById('exportModal');
+            if(prev) prev.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'exportModal';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem';
+            overlay.innerHTML = `
+                <div style="background:var(--bg-secondary,#fff);border-radius:1.5rem;padding:1.5rem;width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;gap:1rem;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+                    <div style="font-weight:800;font-size:1.25rem;color:var(--text-primary,#052c3b)">💾 Export Data</div>
+                    <div style="font-size:0.88rem;color:var(--text-secondary,#64748b);line-height:1.6">
+                        Salin semua teks di bawah, lalu simpan ke file <strong>.json</strong> menggunakan aplikasi Notes / Text Editor di HP kamu.
+                    </div>
+                    <textarea readonly id="exportTextarea" style="flex:1;min-height:180px;font-family:monospace;font-size:0.7rem;padding:0.875rem;border-radius:0.75rem;border:2px solid #2596be;background:var(--bg-primary,#f3ecde);color:var(--text-primary,#052c3b);resize:none;line-height:1.4">${json}</textarea>
+                    <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+                        <button id="copyExportBtn"
+                            style="flex:1;min-width:120px;padding:0.875rem;background:#2596be;color:white;border:none;border-radius:0.75rem;font-weight:700;cursor:pointer;font-size:0.95rem">
+                            📋 Salin Semua
+                        </button>
+                        <button onclick="document.getElementById('exportModal').remove()"
+                            style="flex:1;min-width:120px;padding:0.875rem;background:#dc2626;color:white;border:none;border-radius:0.75rem;font-weight:700;cursor:pointer;font-size:0.95rem">
+                            ✕ Tutup
+                        </button>
+                    </div>
+                    <div id="copyStatus" style="text-align:center;font-weight:700;font-size:0.9rem;color:#10b981;display:none">✅ Tersalin! Tempel ke aplikasi Notes dan simpan sebagai .json</div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Setup tombol salin
+            document.getElementById('copyExportBtn').addEventListener('click', () => {
+                const ta = document.getElementById('exportTextarea');
+                const status = document.getElementById('copyStatus');
+                // Coba clipboard API modern
+                if(navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(json).then(() => {
+                        status.style.display = 'block';
+                        document.getElementById('copyExportBtn').textContent = '✅ Tersalin!';
+                    }).catch(() => fallbackCopy(ta, status));
+                } else {
+                    fallbackCopy(ta, status);
+                }
+            });
+        };
+
+        const fallbackCopy = (ta, status) => {
+            // Metode lama — select + execCommand (kompatibel dengan WebView lama)
+            try {
+                ta.select();
+                ta.setSelectionRange(0, ta.value.length); // iOS
+                const ok = document.execCommand('copy');
+                if(ok) {
+                    if(status) { status.style.display = 'block'; }
+                    const btn = document.getElementById('copyExportBtn');
+                    if(btn) btn.textContent = '✅ Tersalin!';
+                } else {
+                    alert('Tekan & tahan teks di atas lalu pilih "Select All" dan "Copy"');
+                }
+            } catch(e) {
+                alert('Tekan & tahan teks di atas lalu pilih "Select All" dan "Copy"');
+            }
+        };
+
+        const importData = e => {
+            const f = e.target.files[0];
+            if(!f) return;
+            const r = new FileReader();
+            r.onload = ev => {
+                processImportText(ev.target.result);
+            };
+            r.readAsText(f);
+            e.target.value = '';
+        };
+
+        const showImportPasteModal = () => {
+            const prev = document.getElementById('importPasteModal');
+            if(prev) prev.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'importPasteModal';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem';
+            overlay.innerHTML = `
+                <div style="background:var(--bg-secondary,#fff);border-radius:1.5rem;padding:1.5rem;width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;gap:1rem;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+                    <div style="font-weight:800;font-size:1.25rem;color:var(--text-primary,#052c3b)">📋 Import via Paste</div>
+                    <div style="font-size:0.88rem;color:var(--text-secondary,#64748b);line-height:1.6">
+                        Tempel (paste) data JSON dari catatan kamu ke kotak di bawah, lalu tekan <strong>Import</strong>.
+                    </div>
+                    <textarea id="importPasteArea" placeholder="Tempel data JSON di sini..." style="flex:1;min-height:220px;font-family:monospace;font-size:0.72rem;padding:0.875rem;border-radius:0.75rem;border:2px solid #10b981;background:var(--bg-primary,#f3ecde);color:var(--text-primary,#052c3b);resize:none;line-height:1.4"></textarea>
+                    <div id="pasteImportStatus" style="font-size:0.85rem;font-weight:600;color:#dc2626;display:none;text-align:center"></div>
+                    <div style="display:flex;gap:0.75rem">
+                        <button onclick="processPasteImport()" style="flex:1;padding:0.875rem;background:#10b981;color:white;border:none;border-radius:0.75rem;font-weight:700;cursor:pointer;font-size:0.95rem">
+                            ✅ Import
+                        </button>
+                        <button onclick="document.getElementById('importPasteModal').remove()" style="flex:1;padding:0.875rem;background:#dc2626;color:white;border:none;border-radius:0.75rem;font-weight:700;cursor:pointer;font-size:0.95rem">
+                            ✕ Batal
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Auto-paste dari clipboard jika ada izin
+            if(navigator.clipboard && navigator.clipboard.readText) {
+                navigator.clipboard.readText().then(text => {
+                    if(text && text.trim().startsWith('{')) {
+                        document.getElementById('importPasteArea').value = text;
+                    }
+                }).catch(() => { /* user belum grant izin, biarkan manual */ });
+            }
+        };
+
+        const processPasteImport = () => {
+            const raw = document.getElementById('importPasteArea').value;
+            const status = document.getElementById('pasteImportStatus');
+            if(!raw.trim()) {
+                status.style.display = 'block';
+                status.textContent = '❌ Kotak teks masih kosong!';
+                return;
+            }
+            const result = processImportText(raw, true);
+            if(!result) {
+                status.style.display = 'block';
+                status.textContent = '❌ Format JSON tidak valid. Pastikan data disalin lengkap dari awal { sampai akhir }';
+            }
+        };
+
+        const processImportText = (raw, fromPaste = false) => {
+            try {
+                // Bersihkan karakter "curly quote" yang sering muncul dari Notes app
+                let cleaned = raw
+                    .replace(/[\u2018\u2019]/g, "'")   // ' '
+                    .replace(/[\u201C\u201D]/g, '"')   // " "
+                    .replace(/[\u2013\u2014]/g, '-')   // – —
+                    .replace(/\u00A0/g, ' ')            // non-breaking space
+                    .trim();
+
+                // Jika ada teks sebelum { atau sesudah }, coba ekstrak JSON saja
+                const jsonStart = cleaned.indexOf('{');
+                const jsonEnd = cleaned.lastIndexOf('}');
+                if(jsonStart > 0 || jsonEnd < cleaned.length - 1) {
+                    cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+                }
+
+                const d = JSON.parse(cleaned);
+
+                if(!d.db || !d.srs || !d.stats) {
+                    if(fromPaste) return false;
+                    alert('❌ File JSON tidak valid! Struktur data tidak dikenali.');
+                    return false;
+                }
+
+                if(!confirm('⚠️ Import akan mengganti SEMUA data yang ada sekarang!\n\nLanjutkan?')) return false;
+
+                db = d.db;
+                srs = d.srs;
+                stats = d.stats;
+                save();
+                updDash();
+                updCnt();
+                renderList();
+
+                // Tutup modal paste jika ada
+                const modal = document.getElementById('importPasteModal');
+                if(modal) modal.remove();
+
+                alert('✅ Data berhasil diimport!');
+                nav('main');
+                return true;
+
+            } catch(err) {
+                if(fromPaste) return false;
+                alert('❌ Error membaca data: ' + err.message);
+                return false;
+            }
+        };
+
+        const resetStats = () => {
+            if(!confirm('⚠️ Reset Statistik?\n\nIni akan menghapus SRS progress dan statistik.\nData kanji TIDAK dihapus.\n\nLanjutkan?')) return;
+            srs = {};
+            stats = {
+                total: 0, correct: 0, wrong: 0, streak: 0, lastDate: null,
+                goal: 10, daily: 0, dailyDate: null, last7: [],
+                ach: { first: 0, s7: 0, s30: 0, m10: 0, m50: 0, perfect: 0, d30: 0, n5: 0 },
+                newAch: [], lastStreak: null
+            };
+            save();
+            updDash();
+            renderList();
+            alert('✅ Statistik berhasil direset!\nData kanji tetap aman!');
+            nav('main');
+        };
+
+        // ===== MANAGE KANJI =====
+        const switchTab = (t, el) => {
+            curTab = t;
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            if(el) {
+                el.classList.add('active');
+            } else {
+                // Cari tab yang cocok berdasarkan level
+                document.querySelectorAll('.tab').forEach(x => {
+                    if(x.textContent.trim().startsWith(t === 'custom' ? 'Custom' : t)) x.classList.add('active');
+                });
+            }
+            document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+            document.getElementById(`tab${t === 'custom' ? 'Custom' : t}`).classList.add('active');
+        };
+
+        const renderList = () => {
+            ['N5','N4','N3','N2','N1','custom'].forEach(l => {
+                const c = document.getElementById(`list${l === 'custom' ? 'Custom' : l}`);
+                c.innerHTML = '';
+                const ks = db[l] || [];
+                if(!ks.length) {
+                    c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">Belum ada kanji</div></div>';
+                    return;
+                }
+                ks.forEach((k, i) => {
+                    const id = kId(k, l);
+                    initSRS(id);
+                    const sl = srs[id].lvl;
+                    c.innerHTML += `<div class="kanji-card">
+                        <div class="kanji-header">
+                            <div class="kanji-char">${k.k}</div>
+                            <div class="kanji-actions">
+                                <button class="btn-edit" onclick="editK('${l}', ${i})">✏️</button>
+                                <button class="btn-delete" onclick="delK('${l}', ${i})">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="kanji-meaning">${disp(k.m)}</div>
+                        <div class="kanji-reading">
+                            <span class="kanji-label">Onyomi:</span> ${k.on.join(', ')}
+                        </div>
+                        <div class="kanji-reading">
+                            <span class="kanji-label">Kunyomi:</span> ${k.kun.join(', ')}
+                        </div>
+                        ${renderBar(sl, srs[id].next)}
+                    </div>`;
+                });
+            });
+            updCnt();
+        };
+
+        const updCnt = () => {
+            const now = new Date();
+            ['N5','N4','N3','N2','N1','custom'].forEach(l => {
+                const ks = db[l] || [];
+                const cnt = ks.length;
+                const suf = l === 'custom' ? 'Custom' : l;
+
+                // Hitung kanji siap dikuis (baru atau jatuh tempo)
+                const rdy = ks.filter(k => {
+                    const d = srs[kId(k, l)];
+                    if(!d) return true; // belum ada SRS = kanji baru = siap
+                    if(d.cor === 0 && d.wrn === 0) return true; // belum pernah dijawab
+                    return new Date(d.next) <= now; // jatuh tempo
+                }).length;
+
+                const ce = document.getElementById(`c${suf}`);
+                const te = document.getElementById(`t${suf}`);
+                const re = document.getElementById(`rdy${suf}`);
+                if(ce) ce.textContent = cnt;
+                if(te) te.textContent = cnt;
+                if(re) re.textContent = rdy;
+            });
+        };
+
+        const showModal = () => {
+            editIdx = -1;
+            editLvl = '';
+            document.getElementById('modalTitle').textContent = 'Tambah Kanji';
+            document.getElementById('kanjiForm').reset();
+            document.getElementById('inputLevel').value = curTab;
+            document.getElementById('modal').classList.add('show');
+        };
+
+        const editK = (l, i) => {
+            editIdx = i;
+            editLvl = l;
+            const k = db[l][i];
+            document.getElementById('modalTitle').textContent = 'Edit Kanji';
+            document.getElementById('inputKanji').value = k.k;
+            document.getElementById('inputMeaning').value = disp(k.m);
+            document.getElementById('inputOnyomi').value = k.on.join(', ');
+            document.getElementById('inputKunyomi').value = k.kun.join(', ');
+            document.getElementById('inputLevel').value = l;
+            document.getElementById('modal').classList.add('show');
+        };
+
+        const delK = (l, i) => {
+            if(confirm('Hapus kanji ini?')) {
+                db[l].splice(i, 1);
+                save();
+                renderList();
+            }
+        };
+
+        const closeModal = () => {
+            document.getElementById('modal').classList.remove('show');
+        };
+
+        document.getElementById('kanjiForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const k = document.getElementById('inputKanji').value.trim();
+            const mIn = document.getElementById('inputMeaning').value.trim();
+            const m = mIn.split(',').map(x => x.trim()).filter(x => x);
+            const on = document.getElementById('inputOnyomi').value.split(',').map(x => x.trim()).filter(x => x);
+            const kun = document.getElementById('inputKunyomi').value.split(',').map(x => x.trim()).filter(x => x);
+            const l = document.getElementById('inputLevel').value;
+
+            const kd = { k, on, kun, m };
+
+            if(editIdx >= 0) {
+                if(editLvl !== l) {
+                    db[editLvl].splice(editIdx, 1);
+                    if(!db[l]) db[l] = [];
+                    db[l].push(kd);
+                } else {
+                    db[l][editIdx] = kd;
+                }
+            } else {
+                if(!db[l]) db[l] = [];
+                db[l].push(kd);
+            }
+
+            save();
+            renderList();
+            switchTab(l, null);
+            closeModal();
+        });
+
+        // ===== QUIZ =====
+        const startQuiz = l => {
+            lvl = l;
+            if(!db[l] || !db[l].length) {
+                alert('Belum ada kanji di level ini!');
+                return;
+            }
+
+            const now = new Date();
+
+            // Pastikan semua kanji punya SRS entry
+            db[l].forEach(k => initSRS(kId(k, l)));
+
+            // Kelompokkan berdasarkan prioritas SRS:
+            // 1. Kanji baru (belum pernah dijawab)
+            // 2. Jatuh tempo (sudah waktunya diulang)
+            // 3. Belum jatuh tempo (skip dulu)
+            const fresh  = db[l].filter(k => { const d = srs[kId(k,l)]; return d.cor === 0 && d.wrn === 0; });
+            const due    = db[l].filter(k => { const d = srs[kId(k,l)]; return (d.cor > 0 || d.wrn > 0) && new Date(d.next) <= now; });
+            const notDue = db[l].filter(k => { const d = srs[kId(k,l)]; return (d.cor > 0 || d.wrn > 0) && new Date(d.next) > now; });
+
+            // Pool utama: jatuh tempo + kanji baru (shuffle)
+            let pool = shuf([...due, ...fresh]);
+
+            // Jika practice mode, gunakan semua kanji tanpa filter SRS
+            if(practice) {
+                pool = shuf([...db[l]]);
+            } else if(!pool.length) {
+                // Semua sudah dikuasai & belum jatuh tempo
+                const nextDates = notDue.map(k => new Date(srs[kId(k,l)].next));
+                const nearest = new Date(Math.min(...nextDates));
+                const diffDays = Math.ceil((nearest - now) / 86400000);
+                const go = window.confirm(
+                    'Semua kanji ' + l + ' sudah dikuasai! \uD83C\uDF89\n\nKanji berikutnya jatuh tempo ' + diffDays + ' hari lagi.\n\nMau latihan semua kanji tanpa filter SRS?'
+                );
+                if(!go) return;
+                pool = shuf([...db[l]]);
+            }
+
+            quiz = pool.slice(0, Math.min(10, pool.length));
+            idx = cor = wrn = 0;
+            nav('quiz');
+            showQ();
+        };
+
+        const showQ = () => {
+            if(idx >= quiz.length) {
+                finishQuiz();
+                return;
+            }
+
+            cur = quiz[idx];
+            sel = [];
+
+            document.getElementById('qNum').textContent = `${idx + 1} / ${quiz.length}`;
+            document.getElementById('kanjiChar').textContent = cur.k;
+
+            if(mode === 'normal') {
+                document.getElementById('meaningText').textContent = disp(cur.m);
+                document.getElementById('onyomiBadge').textContent = `音読み: ${cur.on.length}`;
+                document.getElementById('kunyomiBadge').textContent = `訓読み: ${cur.kun.length}`;
+                document.getElementById('onyomiBadge').style.display = 'block';
+                document.getElementById('kunyomiBadge').style.display = 'block';
+            } else {
+                const ms = norm(cur.m);
+                document.getElementById('meaningText').innerHTML = `
+                    <div style="display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.25rem">
+                        <div style="background:#10b981;padding:0.875rem 1.75rem;border-radius:1rem;color:white">
+                            <strong>音読み:</strong> ${cur.on.join(', ')}
+                        </div>
+                        <div style="background:#3b82f6;padding:0.875rem 1.75rem;border-radius:1rem;color:white">
+                            <strong>訓読み:</strong> ${cur.kun.join(', ')}
+                        </div>
+                    </div>
+                    <div style="text-align:center;color:var(--text-secondary);font-size:1rem">
+                        Pilih ${ms.length} arti yang benar
+                    </div>
+                `;
+                document.getElementById('onyomiBadge').style.display = 'none';
+                document.getElementById('kunyomiBadge').style.display = 'none';
+            }
+
+            genOpts();
+            updChkBtn();
+        };
+
+        const genOpts = () => {
+            const c = document.getElementById('optionsArea');
+            c.innerHTML = '';
+
+            // Gunakan level kanji saat ini (untuk review mode pakai cur.lvl)
+            const curLvl = cur.lvl || lvl;
+            const all = db[curLvl] || db['N5'] || [];
+
+            if(mode === 'normal') {
+                const onW = [...new Set(all.filter(k => k.k !== cur.k).flatMap(k => k.on))]
+                    .filter(r => !cur.on.includes(r))
+                    .sort(() => Math.random() - 0.5).slice(0, 4);
+                const onOpts = shuf([...cur.on, ...onW]);
+
+                const kunW = [...new Set(all.filter(k => k.k !== cur.k).flatMap(k => k.kun))]
+                    .filter(r => !cur.kun.includes(r))
+                    .sort(() => Math.random() - 0.5).slice(0, 4);
+                const kunOpts = shuf([...cur.kun, ...kunW]);
+
+                const uOn = [...new Set(onOpts)];
+                const uKun = [...new Set(kunOpts)];
+
+                uOn.forEach(r => {
+                    c.innerHTML += `<button class="option onyomi" onclick="toggle('${r}','onyomi')" data-r="${r}" data-t="onyomi">${r}</button>`;
+                });
+
+                uKun.forEach(r => {
+                    c.innerHTML += `<button class="option kunyomi" onclick="toggle('${r}','kunyomi')" data-r="${r}" data-t="kunyomi">${r}</button>`;
+                });
+            } else {
+                const corM = norm(cur.m);
+                const allM = all.filter(k => k.k !== cur.k).flatMap(k => norm(k.m)).filter((v, i, a) => a.indexOf(v) === i);
+                const mW = allM.filter(m => !corM.includes(m)).sort(() => Math.random() - 0.5).slice(0, Math.max(3, 6 - corM.length));
+                const mOpts = shuf([...corM, ...mW]);
+
+                mOpts.forEach((m, i) => {
+                    c.innerHTML += `<button class="option" style="background:#5a6a7a;position:relative" onclick="toggle('${m}','meaning')" data-r="${m}" data-t="meaning">
+                        <span style="position:absolute;top:-8px;left:-8px;background:#10b981;color:white;width:24px;height:24px;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:0.85em;font-weight:700;border:2px solid #1e293b" class="num-badge"></span>
+                        <span>${m}</span>
+                    </button>`;
+                });
+            }
+        };
+
+        const toggle = (r, t) => {
+            const btn = Array.from(document.querySelectorAll('.option')).find(b => b.dataset.r === r && b.dataset.t === t);
+            if(!btn) return;
+
+            if(mode === 'reverse' && t === 'meaning') {
+                const corM = norm(cur.m);
+                const idx = sel.findIndex(a => a.r === r && a.t === t);
+                if(idx > -1) {
+                    sel.splice(idx, 1);
+                    btn.classList.remove('selected');
+                    const badge = btn.querySelector('.num-badge');
+                    badge.style.display = 'none';
+                    updBadges();
+                } else {
+                    if(sel.length >= corM.length) return;
+                    sel.push({ r, t });
+                    btn.classList.add('selected');
+                    const badge = btn.querySelector('.num-badge');
+                    badge.textContent = sel.length;
+                    badge.style.display = 'flex';
+                }
+            } else {
+                const idx = sel.findIndex(a => a.r === r && a.t === t);
+                if(idx > -1) {
+                    sel.splice(idx, 1);
+                    btn.classList.remove('selected');
+                } else {
+                    sel.push({ r, t });
+                    btn.classList.add('selected');
+                }
+            }
+
+            updChkBtn();
+        };
+
+        const updBadges = () => {
+            sel.forEach((a, i) => {
+                const btn = Array.from(document.querySelectorAll('.option')).find(b => b.dataset.r === a.r && b.dataset.t === a.t);
+                if(btn) {
+                    const badge = btn.querySelector('.num-badge');
+                    badge.textContent = i + 1;
+                }
+            });
+        };
+
+        const updChkBtn = () => {
+            const btn = document.getElementById('checkBtn');
+            if(mode === 'normal') {
+                const tot = cur.on.length + cur.kun.length;
+                btn.textContent = `CEK - ${sel.length}/${tot}`;
+                btn.disabled = sel.length !== tot;
+            } else {
+                const corM = norm(cur.m);
+                btn.textContent = `CEK - ${sel.length}/${corM.length}`;
+                btn.disabled = sel.length !== corM.length;
+            }
+        };
+
+        const check = () => {
+            let ok = 0;
+
+            if(mode === 'normal') {
+                const selOn = sel.filter(a => a.t === 'onyomi').map(a => a.r);
+                const selKun = sel.filter(a => a.t === 'kunyomi').map(a => a.r);
+
+                const onOk = cur.on.every(r => selOn.includes(r)) && selOn.every(r => cur.on.includes(r));
+                const kunOk = cur.kun.every(r => selKun.includes(r)) && selKun.every(r => cur.kun.includes(r));
+
+                ok = onOk && kunOk;
+
+                document.querySelectorAll('.option').forEach(btn => {
+                    btn.disabled = true;
+                    const r = btn.dataset.r;
+                    const t = btn.dataset.t;
+
+                    if(t === 'onyomi') {
+                        if(cur.on.includes(r)) btn.classList.add('correct');
+                        else if(selOn.includes(r)) btn.classList.add('wrong');
+                    } else {
+                        if(cur.kun.includes(r)) btn.classList.add('correct');
+                        else if(selKun.includes(r)) btn.classList.add('wrong');
+                    }
+                });
+            } else {
+                const corM = norm(cur.m);
+                const selM = sel.map(a => a.r);
+
+                ok = corM.every(m => selM.includes(m)) && selM.every(m => corM.includes(m));
+
+                document.querySelectorAll('.option').forEach(btn => {
+                    btn.disabled = true;
+                    const m = btn.dataset.r;
+
+                    if(corM.includes(m)) {
+                        btn.classList.add('correct');
+                        btn.style.background = '#10b981';
+                    } else if(selM.includes(m)) {
+                        btn.classList.add('wrong');
+                        btn.style.background = '#dc2626';
+                    }
+                });
+            }
+
+            if(ok) {
+                cor++;
+                showFeed(1);
+            } else {
+                wrn++;
+                showFeed(0);
+            }
+
+            document.getElementById('correct').textContent = cor;
+            document.getElementById('wrong').textContent = wrn;
+
+            const id = kId(cur, cur.lvl || lvl);
+            updSRS(id, ok);
+
+            const cbtn = document.getElementById('checkBtn');
+            cbtn.textContent = 'LANJUT →';
+            cbtn.disabled = false;
+            cbtn.onclick = next;
+        };
+
+        const showFeed = ok => {
+            const f = document.getElementById('feedback');
+            f.textContent = ok ? '✓ BENAR!' : '✗ SALAH!';
+            f.className = ok ? 'feedback show correct' : 'feedback show wrong';
+            
+            playSound(ok ? 'correct' : 'wrong');
+
+            setTimeout(() => {
+                f.classList.remove('show');
+            }, 1200);
+        };
+
+        const next = () => {
+            idx++;
+            const cbtn = document.getElementById('checkBtn');
+            cbtn.onclick = check;
+            showQ(); // showQ akan update teks lewat updChkBtn
+        };
+
+        const finishQuiz = () => {
+            stats.total++;
+            stats.correct += cor;
+            stats.wrong += wrn;
+            stats.daily += quiz.length;
+
+            if(cor === quiz.length && quiz.length > 0) {
+                stats.ach.perfect = 1;
+            }
+
+            updLast7();
+            checkDailyStreak();
+            checkAch();
+            save();
+
+            // Re-render list agar SRS bar di Manage Kanji ikut update
+            renderList();
+
+            alert(`Kuis Selesai!\n\nBenar: ${cor}\nSalah: ${wrn}\nSkor: ${Math.round((cor / quiz.length) * 100)}%`);
+
+            nav('main');
+        };
+
+        // ===== INITIALIZATION =====
+        initTheme();
+        renderList();
+        updDash();
+
+        // Remove splash screen after animation
+        setTimeout(() => {
+            const splash = document.querySelector('.splash');
+            if (splash) {
+                splash.remove();
+            }
+        }, 3500);
+    </script>
+</body>
+</html>
